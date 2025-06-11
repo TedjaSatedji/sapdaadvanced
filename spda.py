@@ -184,7 +184,7 @@ if __name__ == "__main__":
         else:
             print(f"Found {len(users)} users. Starting parallel processing...")
             # Use ThreadPoolExecutor to run login_and_attend for each user in parallel
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 # Submit a task for each user
                 future_to_user = {executor.submit(login_and_attend, user, current_class): user for user in users}
                 for future in concurrent.futures.as_completed(future_to_user):
