@@ -102,13 +102,13 @@ def get_next_index():
 def save_to_env(chat_id, creds):
     index = get_next_index()
     with open(ENV_FILE, "a") as f:
-        f.write(f"\n#--- {creds.get('telegram_username', '')} ---")
+        f.write(f"\n#--- {creds['username']} ---")
         f.write(f"\nSPADA_USERNAME_{index}={creds['username']}")
         f.write(f"\nSPADA_PASSWORD_{index}={creds['password']}")
         f.write(f"\nTELEGRAM_CHAT_ID_{index}={chat_id}\n")
 
 def delete_credentials(chat_id):
-    """Remove user credentials from .env"""
+    """Remove user credentials from .env, including the comment line above."""
     if not os.path.exists(ENV_FILE):
         return False
     with open(ENV_FILE, "r") as f:
@@ -116,18 +116,20 @@ def delete_credentials(chat_id):
 
     new_lines = []
     found = False
-    i = 1
-    while i <= len(lines):
+    i = 0
+    while i < len(lines):
+        # Look for the start of a credential block (comment + 3 lines)
         if (
-            lines[i-1].startswith("SPADA_USERNAME_")
-            and i+1 < len(lines)
-            and f"TELEGRAM_CHAT_ID_" in lines[i+1]
-            and chat_id in lines[i+1]
+            i + 3 < len(lines)
+            and lines[i].startswith("#---")
+            and lines[i+1].startswith("SPADA_USERNAME_")
+            and f"TELEGRAM_CHAT_ID_" in lines[i+3]
+            and chat_id in lines[i+3]
         ):
             found = True
-            i += 3  # Skip this user's 3 lines
+            i += 4  # Skip the comment and 3 credential lines
         else:
-            new_lines.append(lines[i-1])
+            new_lines.append(lines[i])
             i += 1
 
     if found:
