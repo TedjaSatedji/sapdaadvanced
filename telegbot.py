@@ -14,11 +14,32 @@ ENV_FILE = ".env"
 def handle_start(message):
     commands = [
         "/start - Show this help message",
+        "/me - check for existing data"
         "/setup - Save your SPADA credentials",
         "/delete - Delete your saved credentials",
         "/cancel - Cancel the current setup"
     ]
     bot.send_message(message.chat.id, "🤖 Available commands:\n" + "\n".join(commands))
+
+    @bot.message_handler(commands=["me"])
+    def handle_me(message):
+        chat_id = str(message.chat.id)
+        if not os.path.exists(ENV_FILE):
+            bot.send_message(chat_id, "ℹ️ No credentials found for your account.")
+            return
+        with open(ENV_FILE, "r") as f:
+            lines = f.readlines()
+        username = None
+        for i in range(len(lines)):
+            if lines[i].startswith("TELEGRAM_CHAT_ID_") and chat_id in lines[i]:
+                # Find the corresponding username (should be two lines above)
+                if i >= 2 and lines[i-2].startswith("SPADA_USERNAME_"):
+                    username = lines[i-2].split("=", 1)[1].strip()
+                break
+        if username:
+            bot.send_message(chat_id, f"👤 Your SPADA username: <code>{username}</code>", parse_mode="HTML")
+        else:
+            bot.send_message(chat_id, "ℹ️ No credentials found for your account.")
 
 @bot.message_handler(commands=["setup"])
 def handle_setup(message):
