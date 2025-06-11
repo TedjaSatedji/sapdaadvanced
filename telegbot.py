@@ -14,7 +14,7 @@ ENV_FILE = ".env"
 def handle_start(message):
     commands = [
         "/start - Show this help message",
-        "/me - check for existing data"
+        "/me - check for existing data",
         "/setup - Save your SPADA credentials",
         "/delete - Delete your saved credentials",
         "/cancel - Cancel the current setup"
