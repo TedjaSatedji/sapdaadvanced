@@ -102,7 +102,7 @@ def get_next_index():
 def save_to_env(chat_id, creds):
     index = get_next_index()
     with open(ENV_FILE, "a") as f:
-        f.write(f"\n#--- {creds['username']} ---")
+        f.write(f"#--- {creds['username']} ---")
         f.write(f"\nSPADA_USERNAME_{index}={creds['username']}")
         f.write(f"\nSPADA_PASSWORD_{index}={creds['password']}")
         f.write(f"\nTELEGRAM_CHAT_ID_{index}={chat_id}\n")
