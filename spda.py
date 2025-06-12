@@ -163,7 +163,7 @@ def login_and_attend(user, course_name):
         except Exception:
             # This handles cases where attendance is already submitted or not open
             print(f"ℹ️ Could not submit attendance for {username}. It may already be marked or not available.")
-            send_telegram(f"ℹ️ No  active attendance found for {course_name}. {username} go check it.", chat_id)
+            send_telegram(f"ℹ️ No  active attendance found for {course_name}. {username} (mungkin error mungkin memang gaada absen, cek gih).", chat_id)
 
     except Exception as e:
         print(f"❌ An error occurred for user {username}: {e}")
