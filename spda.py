@@ -66,7 +66,7 @@ def get_current_class(schedule):
     return None
 
 # --- Browser Automation ---
-def init_driver(headless=True):
+def init_driver(headless=False):
     options = Options()
     if headless:
         options.add_argument("--headless")
@@ -103,9 +103,10 @@ def login_and_attend(user, course_name):
 
         # Search for course
         course_link = None
-        courses = driver.find_elements(By.PARTIAL_LINK_TEXT, course_name)
+        courses = driver.find_elements(By.TAG_NAME, "a")
         for course in courses:
-            if course_name.lower() in course.text.lower():
+            course_text = course.text.strip().lower()
+            if course_text.startswith(course_name.lower()):
                 course_link = course
                 break
         
