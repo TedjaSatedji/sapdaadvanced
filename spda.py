@@ -7,6 +7,8 @@ from selenium.webdriver.chrome.options import Options
 from dotenv import load_dotenv
 import os
 import requests
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import concurrent.futures
 
 # Load environment variables
@@ -72,7 +74,7 @@ def get_current_class(schedule):
     return None
 
 # --- Browser Automation ---
-def init_driver(headless=True):
+def init_driver(headless=False):
     options = Options()
     if headless:
         options.add_argument("--headless")
@@ -92,36 +94,42 @@ def login_and_attend(user, course_name):
 
     try:
         driver.get("https://spada.upnyk.ac.id/login/index.php")
-        time.sleep(2)
+
+        # Wait for the login form to be present and interactable
+        wait = WebDriverWait(driver, 10)
+        wait.until(EC.presence_of_element_located((By.ID, "username")))
+        wait.until(EC.presence_of_element_located((By.ID, "password")))
+        wait.until(EC.element_to_be_clickable((By.ID, "loginbtn")))
 
         # Login
         driver.find_element(By.ID, "username").send_keys(username)
         driver.find_element(By.ID, "password").send_keys(password)
         driver.find_element(By.ID, "loginbtn").click()
-        time.sleep(3)
-        
-        # Check for login failure
-        if "login/index.php" in driver.current_url:
-             print(f"❌ Login failed for {username}. Please check credentials.")
-             send_telegram(f"❌ Login failed for {username}. Please check your credentials.", chat_id)
-             return
 
+        # Wait for dashboard or check for login failure
+        wait.until(lambda d: "login/index.php" not in d.current_url or d.find_element(By.ID, "loginbtn"))
+
+        if "login/index.php" in driver.current_url:
+            print(f"❌ Login failed for {username}. Please check credentials.")
+            send_telegram(f"❌ Login failed for {username}. Please delete and re-input your credentials.", chat_id)
+            return
 
         # Search for course
         course_link = None
+        wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
         courses = driver.find_elements(By.TAG_NAME, "a")
         for course in courses:
             course_text = course.text.strip().lower()
             if course_text.startswith(course_name.lower()):
                 course_link = course
                 break
-        
+
         if course_link:
             course_link.click()
-            time.sleep(2)
+            # Wait for course page to load (look for attendance link)
+            wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
         else:
             print(f"Course '{course_name}' not found on dashboard for {username}.")
-            # No notification here, as it might just not be visible.
             return
 
         # Look for 'Presensi' or 'Attendance'
@@ -136,19 +144,22 @@ def login_and_attend(user, course_name):
             print(f"No attendance link found for {username}.")
             send_telegram(f"No attendance link found in {course_name} for you.", chat_id)
             return
-        
+
         attendance_link.click()
-        time.sleep(2)
+        # Wait for attendance page to load
+        wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
 
         # Submit attendance
         try:
             # Click the "Submit attendance" link
-            driver.find_element(By.PARTIAL_LINK_TEXT, "Submit attendance").click()
-            time.sleep(2)
+            submit_link = wait.until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, "Submit attendance")))
+            submit_link.click()
+
+            # Wait for radio buttons to appear
+            wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "label.form-check-label")))
 
             # Find and click the "Present" radio button
             labels = driver.find_elements(By.CSS_SELECTOR, "label.form-check-label")
-
             for label in labels:
                 try:
                     span = label.find_element(By.CLASS_NAME, "statusdesc")
@@ -156,18 +167,17 @@ def login_and_attend(user, course_name):
                         radio = label.find_element(By.TAG_NAME, "input")
                         radio.click()
                         break
-                except Exception as e:
+                except Exception:
                     continue  # Skip labels that don't match structure
-            
+
             # Click the save/submit button
-            driver.find_element(By.ID, "id_submitbutton").click()
-            time.sleep(2)
-            
+            submit_button = wait.until(EC.element_to_be_clickable((By.ID, "id_submitbutton")))
+            submit_button.click()
+
             print(f"✅ Attendance submitted for {username}!")
             send_telegram(f"✅ {course_name} attendance submitted successfully for {username}.", chat_id)
 
         except Exception:
-            # This handles cases where attendance is already submitted or not open
             print(f"ℹ️ Could not submit attendance for {username}. It may already be marked or not available.")
             send_telegram(f"ℹ️ No  active attendance found for {course_name}. {username} (mungkin error mungkin memang gaada absen, cek gih).", chat_id)
 
