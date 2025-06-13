@@ -74,7 +74,7 @@ def get_current_class(schedule):
     return None
 
 # --- Browser Automation ---
-def init_driver(headless=False):
+def init_driver(headless=True):
     options = Options()
     if headless:
         options.add_argument("--headless")
