@@ -15,19 +15,25 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 # --- User Loading ---
 def load_users():
-    """Loads user credentials from environment variables."""
+    """Loads user credentials from environment variables, supporting non-sequential numbering."""
     users = []
-    i = 1
-    while True:
+    # Collect all environment variable keys
+    env_keys = os.environ.keys()
+    # Find all SPADA_USERNAME_X patterns
+    indices = set()
+    for key in env_keys:
+        if key.startswith("SPADA_USERNAME_"):
+            try:
+                idx = int(key.split("_")[-1])
+                indices.add(idx)
+            except ValueError:
+                continue
+    for i in sorted(indices):
         username = os.getenv(f"SPADA_USERNAME_{i}")
         password = os.getenv(f"SPADA_PASSWORD_{i}")
         chat_id = os.getenv(f"TELEGRAM_CHAT_ID_{i}")
-
-        if not all([username, password, chat_id]):
-            break  # Stop if any variable for the user is missing
-
-        users.append({"username": username, "password": password, "chat_id": chat_id})
-        i += 1
+        if all([username, password, chat_id]):
+            users.append({"username": username, "password": password, "chat_id": chat_id})
     return users
 
 # --- Telegram Bot ---
